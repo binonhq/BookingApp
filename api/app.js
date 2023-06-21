@@ -5,6 +5,9 @@ const cors = require("cors")
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs")
 const User = require("./models/User.js");
+const User = require("./models/Place.js");
+const User = require("./models/Booking.js");
+
 const jwt = require("jsonwebtoken")
 const cookieParser = require("cookie-parser")
 const imageDownloader = require("image-downloader")
