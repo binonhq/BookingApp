@@ -1,12 +1,12 @@
-require("dotenv").config()
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors")
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs")
 const User = require("./models/User.js");
-const User = require("./models/Place.js");
-const User = require("./models/Booking.js");
+//const User = require("./models/Place.js");
+//const User = require("./models/Booking.js");
 
 const jwt = require("jsonwebtoken")
 const cookieParser = require("cookie-parser")
@@ -110,5 +110,21 @@ app.post('/upload-by-link', async (req, res) => {
     })
     res.json(newName);
 })
-
+app.post('/places', (req,res) => {
+    mongoose.connect(process.env.MONGO_URL);
+    const {token} = req.cookies;
+    const {
+      title,address,addedPhotos,description,price,
+      perks,extraInfo,checkIn,checkOut,maxGuests,
+    } = req.body;
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err;
+      const placeDoc = await Place.create({
+        owner:userData.id,price,
+        title,address,photos:addedPhotos,description,
+        perks,extraInfo,checkIn,checkOut,maxGuests,
+      });
+      res.json(placeDoc);
+    });
+  });
 module.exports = app;
