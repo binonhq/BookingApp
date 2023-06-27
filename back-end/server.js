@@ -6,6 +6,7 @@ const connectDB = require("./config/mongo");
 
 const PORT = process.env.PORT;
 app.use(express.json());
+app.use('/uploads', express.static(__dirname + "\\uploads\\"))
 app.use(cors({
     credentials: true,
     origin: 'http://localhost:5173',
@@ -13,11 +14,13 @@ app.use(cors({
 
 // import routers
 const userRouter = require("./routes/user");
-// const productRouter = require("./routes/product");
+const placeRouter = require("./routes/place");
+const bookingRouter = require("./routes/booking");
 
 // use routers
 app.use("/api/user", userRouter);
-// app.use("/api/products", productRouter);
+app.use("/api/place", placeRouter);
+app.use("/api/booking", bookingRouter);
 
 app.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`)
