@@ -1,218 +1,139 @@
-import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
-import Perk from "../Perk";
+import { useEffect, useState, useContext } from "react";
+import { useParams, Navigate } from "react-router-dom";
 import axios from "axios";
-// import { response } from "../../../api/app";
-export default function PlacesPage() {
-  const { action } = useParams();
-  const [title, setTitle] = useState("");
-  const [address, setAddress] = useState("");
-  const [addedPhotos, setAddedPhotos] = useState([]);
-  const [description, setDescription] = useState("");
-  const [perks, setPerks] = useState([]);
-  const [photoLink, setPhotoLink] = useState("");
-  const [extraInfo, setExtraInfo] = useState("");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [maxGuests, setMaxGuests] = useState(1);
-  const [price, setPrice] = useState(100);
-  // const [redirect, setRedirect] = useState(false);
+import AddressLink from "../AddressLink";
+import PlaceGallery from "../PlaceGallery";
+import BookingWidget from "../BookingWidget";
+import { UserContext } from "../UserContext";
+import Rate from "../Rate";
+import format from "date-fns/format";
 
-  function inputHeader(text) {
-    return <h2 className="text-2xl mt-4">{text}</h2>;
-  }
-  function inputDescription(text) {
-    return <p className="text-gray-500 text-sm">{text}</p>;
-  }
-  function preInput(header, description) {
-    return (
-      <>
-        {inputHeader(header)}
-        {inputDescription(description)}
-      </>
-    );
-  }
-
-  async function addPhotoByLink(ev) {
-    ev.preventDefault();
-    if (photoLink) {
-      const { data: filename } = await axios.post("/api/place/upload-by-link", {
-        link: photoLink,
-      });
-      setAddedPhotos((prev) => {
-        return [...prev, filename];
-      });
-      setPhotoLink("");
+export default function PlacePage() {
+  const { ready, user } = useContext(UserContext);
+  const { id } = useParams();
+  const [place, setPlace] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [rate, setRate] = useState(0);
+  useEffect(() => {
+    if (!id) {
+      return;
     }
+    axios.get(`/places/${id}`).then((response) => {
+      setPlace(response.data);
+    });
+    axios.get(`/feedback/${id}`).then((response) => {
+      setFeedbacks(response.data[0].feedback.reverse());
+      setRate(response.data[0].rating);
+    });
+  }, [id]);
+
+  if (!ready) {
+    return "Loading...";
   }
 
-  // function uploadPhoto(ev) {
-  //   ev.preventDefault();
-  //   const files = ev.target.files;
-  //   const data = new FormData();
-  //   data.set("photos", files);
-  //   axios
-  //     .post("/upload", data, {
-  //       headers: { "Content-Type": "multipart/form-data" },
-  //     })
-  //     .then((response) => {
-  //       const { data: filename } = response;
-  //       setAddedPhotos((prev) => {
-  //         return [...prev, filename];
-  //       });
-  //     });
-  // }
+  if (ready && !user) {
+    return <Navigate to={"/login"} />;
+  }
+
+  if (!place) return "";
+
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // JavaScript months are 0-based.
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
 
   return (
-    <div>
-      {action !== "new" && (
-        <div className="text-center">
-          <Link
-            className="inline-flex gap-1 bg-primary text-white py-2 px-6 rounded-full"
-            to={"/account/places/new"}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Add new place
-          </Link>
-        </div>
-      )}
-
-      {action === "new" && (
+    <div className="pt-3 rounded-2xl md:w-full lg:w-2/3 m-auto px-10">
+      <h1 className="text-3xl font-semibold">{place.title}</h1>
+      <div className="flex items-end py-2">
+        <span className="material-symbols-outlined text-2xl pr-1">star</span>
+        {rate !== 0 && <h1 className="text-2xl font-semibold">{rate}</h1>}
+        {rate === 0 && <h1 className="text-2xl font-semibold">-</h1>}
+        <h1 className="text-xl text-gray-400">/5</h1>
+        <h1 className="font-semibold px-1"> - {feedbacks.length} reviews</h1>
+      </div>
+      <AddressLink>{place.address}</AddressLink>
+      <PlaceGallery place={place} />
+      <div className="mt-8 mb-8 grid gap-8 grid-cols-1 md:grid-cols-[2fr_1fr]">
         <div>
-          <form>
-            {preInput(
-              "Title",
-              "Title for your place. should be short and catchy as in advertisement"
-            )}
-            <input
-              className="w-full border mr-1 mt-2 py-1 px-4 rounded-xl"
-              type="text"
-              value={title}
-              onChange={(ev) => setTitle(ev.target.value)}
-              placeholder="title, for example: My lovely apt"
-            />
-            {preInput("Address", "Address to this place")}
-            <input
-              className="w-full border mr-1 mt-2 py-1 px-4 rounded-xl"
-              type="text"
-              value={address}
-              onChange={(ev) => setAddress(ev.target.value)}
-              placeholder="address"
-            />
-            {preInput("Photos", "More = better")}
-            <div className="flex gap-2 py-2">
-              <input
-                className="w-full border mr-1 py-1 px-4 rounded-xl"
-                type="text"
-                value={photoLink}
-                onChange={(ev) => setPhotoLink(ev.target.value)}
-                placeholder="photo link"
-              />
-              <button
-                onClick={addPhotoByLink}
-                className=" bg-primary text-white px-4 rounded-xl font-semibold"
-              >
-                +
-              </button>
-            </div>
-            <div className="mt-2 gap-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {addedPhotos.length > 0 &&
-                addedPhotos.map((link) => (
-                  <div key={link}>
-                    <img
-                      className="rounded-xl"
-                      src={"http://localhost:3001/uploads/" + link}
-                    />
-                  </div>
-                ))}
-              {/* <label className="cursor-pointer border bg-transparent rounded-2xl p-8 text-2xl text-gray-600">
-                <input
-                  type="file"
-                  className="hidden"
-                  // onChange={uploadPhoto}
-                ></input>
-                <span className="material-symbols-outlined pl-8">upload</span>
-              </label> */}
-            </div>
-            {/* <PhotosUploader
-              addedPhotos={addedPhotos}
-              onChange={setAddedPhotos}
-            /> */}
-            {preInput("Description", "Description of the place")}
-            <textarea
-              value={description}
-              onChange={(ev) => setDescription(ev.target.value)}
-            />
-            {preInput("Perks", "Select all the perks of your place")}
-            <div className="grid mt-2 gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-              <Perk selected={perks} onChange={setPerks} />
-            </div>
-            {preInput("Extra info", "house rules, etc")}
-            <textarea
-              value={extraInfo}
-              onChange={(ev) => setExtraInfo(ev.target.value)}
-            />
-            {preInput(
-              "Check in&out times",
-              "add check in and out times, remember to have some time window for cleaning the room between guests"
-            )}
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-              <div>
-                <h3 className="mt-2 -mb-1">Check in time</h3>
-                <input
-                  className="w-full border my-2 py-2 px-4 rounded-xl"
-                  type="text"
-                  value={checkIn}
-                  onChange={(ev) => setCheckIn(ev.target.value)}
-                  placeholder="14:00"
-                />
-              </div>
-              <div>
-                <h3 className="mt-2 -mb-1">Check out time</h3>
-                <input
-                  className="w-full border my-2 py-2 px-4 rounded-xl"
-                  type="text"
-                  value={checkOut}
-                  onChange={(ev) => setCheckOut(ev.target.value)}
-                  placeholder="11:00"
-                />
-              </div>
-              <div>
-                <h3 className="mt-2 -mb-1">Max number of guests</h3>
-                <input
-                  className="w-full border my-2 py-2 px-4 rounded-xl"
-                  type="number"
-                  value={maxGuests}
-                  onChange={(ev) => setMaxGuests(ev.target.value)}
-                />
-              </div>
-              <div>
-                <h3 className="mt-2 -mb-1">Price per night</h3>
-                <input
-                  className="w-full border my-2 py-2 px-4 rounded-xl"
-                  type="number"
-                  value={price}
-                  onChange={(ev) => setPrice(ev.target.value)}
-                />
-              </div>
-            </div>
-            <button className="w-full bg-primary text-white my-4 py-2 border rounded-xl text-xl font-semibold">
-              Save
-            </button>
-          </form>
+          <div className="my-4">
+            <h2 className="font-semibold text-2xl">Description</h2>
+            {place.description}
+          </div>
+          Check-in: {place.checkIn}
+          <br />
+          Check-out: {place.checkOut}
+          <br />
+          Max number of guests: {place.maxGuests}
+          <br />
+          Feature:
+          {place.perks.map((perk) => (
+            <li key={perk} className="ml-2 capitalize">
+              {perk}
+            </li>
+          ))}
         </div>
-      )}
+        <div>
+          <BookingWidget place={place} />
+        </div>
+      </div>
+      <div className="bg-white -mx-8 px-8 py-8 border-t">
+        <div>
+          <h2 className="font-semibold text-2xl">Extra info</h2>
+        </div>
+        <div className="mb-4 mt-2 text-sm text-gray-700 leading-5">
+          {place.extraInfo}
+        </div>
+      </div>
+      <div className="bg-white -mx-8 px-8 py-8 border-t">
+        <div>
+          <h2 className="font-semibold text-2xl">Review</h2>
+          <div className="flex items-end py-2">
+            <span className="material-symbols-outlined text-2xl pr-1">
+              star
+            </span>
+            {rate !== 0 && <h1 className="text-2xl font-semibold">{rate}</h1>}
+            {rate === 0 && <h1 className="text-2xl font-semibold">-</h1>}
+            <h1 className="text-xl text-gray-400">/5</h1>
+            <h1 className="font-semibold px-1">
+              {" "}
+              - {feedbacks.length} reviews
+            </h1>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {feedbacks.length > 0 &&
+              feedbacks.map((feedback) => (
+                <div key={feedback._id} className="py-5">
+                  <div className="flex">
+                    <img
+                      className="h-16 border-2 rounded-full my-auto"
+                      src="https://i.pinimg.com/originals/39/a4/71/39a47159059f38a954d77e5dcae6f0db.jpg"
+                      alt="avatar"
+                    />
+                    <div className="pl-3">
+                      <h1 className="font-semibold capitalize">
+                        {feedback.user.firstName + " " + feedback.user.lastName}
+                      </h1>
+                      <h1 className="text-sm text-gray-500">
+                        {feedback.user.email}
+                      </h1>
+                      <Rate rating={feedback.rate} />
+                      <h1 className="text-gray-500 text-sm">
+                        {formatDate(feedback.date)}
+                      </h1>
+                    </div>
+                  </div>
+                  <div className="pt-5">
+                    <h1>{feedback.comment}</h1>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
