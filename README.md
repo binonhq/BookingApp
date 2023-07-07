@@ -15,7 +15,7 @@ $ yarn dev
 
 ## 2. Server
 ```
-$ cd api
+$ cd backend/src
 ```
 Install dependencies:
 ```
